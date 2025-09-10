@@ -1,4 +1,5 @@
 import logging
+import os
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -13,7 +14,7 @@ from telegram.ext import (
 )
 
 # --- KONFIGURASI ---
-import os
+# Variabel ini akan dibaca dari Environment Variables di Railway
 TOKEN_BOT = os.environ.get("TELEGRAM_TOKEN")
 ADMIN_USER_ID = int(os.environ.get("ADMIN_USER_ID"))
 MONGO_URI = os.environ.get("MONGO_URI")
@@ -52,10 +53,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='Markdown')
 
 async def faq_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # (Fungsi ini sama seperti sebelumnya, tidak ada perubahan)
     try:
         client = MongoClient(MONGO_URI)
-        collection = client[MONGO_DB][MONGO_COLLECTION]
+        db = client["db_bot_cs"]
+        collection = db["faqs"]
+
         faqs = list(collection.find({}, {"_id": 1, "question": 1}))
         client.close()
         if not faqs:
@@ -88,7 +90,9 @@ async def terima_jawaban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = update.message.text
     try:
         client = MongoClient(MONGO_URI)
-        collection = client[MONGO_DB][MONGO_COLLECTION]
+        db = client["db_bot_cs"]
+        collection = db["faqs"]
+
         collection.insert_one({"question": question, "answer": answer})
         client.close()
         await update.message.reply_text("✅ FAQ baru berhasil ditambahkan!")
@@ -110,7 +114,9 @@ async def hapus_faq_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     try:
         client = MongoClient(MONGO_URI)
-        collection = client[MONGO_DB][MONGO_COLLECTION]
+        db = client["db_bot_cs"]
+        collection = db["faqs"]
+
         faqs = list(collection.find({}, {"_id": 1, "question": 1}))
         client.close()
         if not faqs:
@@ -123,7 +129,7 @@ async def hapus_faq_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error di hapus_faq_start: {e}")
         await update.message.reply_text("Maaf, terjadi kesalahan.")
 
-# --- FUNGSI HANDLER TOMBOL (di-upgrade) ---
+# --- FUNGSI HANDLER TOMBOL ---
 async def button_click_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -132,7 +138,8 @@ async def button_click_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
     try:
         client = MongoClient(MONGO_URI)
-        collection = client[MONGO_DB][MONGO_COLLECTION]
+        db = client["db_bot_cs"]
+        collection = db["faqs"]
         
         if action == "view":
             result = collection.find_one({"_id": ObjectId(doc_id)})
@@ -141,7 +148,6 @@ async def button_click_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 await query.edit_message_text(text=response_text, parse_mode='Markdown')
         
         elif action == "delete":
-            # Cek lagi apakah yang menekan tombol adalah admin
             if query.from_user.id != ADMIN_USER_ID:
                 await context.bot.send_message(chat_id=query.from_user.id, text="Aksi ini hanya untuk admin.")
                 return
