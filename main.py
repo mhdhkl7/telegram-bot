@@ -13,13 +13,10 @@ from telegram.ext import (
 )
 
 # --- KONFIGURASI ---
-TOKEN_BOT = "8429464562:AAHZxFTbFaJLFOx6TSYMuaKcYuSXYv20RbM"
-MONGO_URI = "mongodb://localhost:27017/"
-MONGO_DB = "db_bot_cs"
-MONGO_COLLECTION = "faqs"
-
-# !!! GANTI DENGAN USER ID TELEGRAM-MU !!!
-ADMIN_USER_ID = 5750515924 # <--- GANTI ANGKA INI
+import os
+TOKEN_BOT = os.environ.get("TELEGRAM_TOKEN")
+ADMIN_USER_ID = int(os.environ.get("ADMIN_USER_ID"))
+MONGO_URI = os.environ.get("MONGO_URI")
 
 # State untuk ConversationHandler
 QUESTION, ANSWER = range(2)
